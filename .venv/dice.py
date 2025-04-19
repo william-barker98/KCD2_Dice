@@ -9,4 +9,3 @@ class Dice():
     def roll(self):
         result = random.randint(1, self.faces)
         self.result = result
-        return self.result
