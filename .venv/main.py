@@ -11,12 +11,13 @@ init()
 p_points = 0    # player points
 o_points = 0    # opponent points
 t_points = 0   # number of points needed to win the game
-first_player = 0
-dice_count = const.NUMBER_OF_DICE
+first_player = 0    #  first player is 0, AI is 1
+dice_count = const.NUMBER_OF_DICE   # the maximum number of dice both the player and AI start with.
 
 temp_score = 0 # used to store the score while you're still playing a round. If you go bust, this resets and swaps to your opponent.
+score = 0
 
-player_dice = []
+player_dice = []    # both these lists are used to store the dice being rolled by the player and the AI.
 opponent_dice = []
 
 
@@ -50,7 +51,7 @@ def find_consecutive_sequences(numbers):    # used to find every set of consecut
     else:   # otherwise
         pass
     return sequences
-def welcome(t_points):
+def welcome(t_points):  # will probably merge with the setup function, I probably don't need both.
 
 
         print("Welcome! What should target score be?")
@@ -61,7 +62,7 @@ def welcome(t_points):
 2. 3000
 3. 4500.
 4. Exit.''')
-            choice = input("Choice: ")
+            choice = input("Choice: ")  # The player chooses how many points either player needs to meet/surpass to win the game.
             if choice == "1":
                 t_points = 1500
             elif choice == "2":
@@ -75,11 +76,13 @@ def welcome(t_points):
 
 
 
-def setup():
+def setup():    # handles setting up the game.
 
-    for i in range(const.NUMBER_OF_DICE):
+    for i in range(const.NUMBER_OF_DICE):   #  populates each dice list with Dice objects, assigning each of them a number ID (1, 2, 3 etc).
         player_dice.append(Dice(i+1))
         opponent_dice.append(Dice(i+1))
+
+    return player_dice, opponent_dice
 
 
 def coin_flip(): # determine who goes first
@@ -90,11 +93,11 @@ def coin_flip(): # determine who goes first
         print("Your opponent is going first!")
     first_player = int(flip)
 
-def roll_dice():
+def roll_dice(dice):
     first_player = 0    # testing with player always going first
-    i = 1
+    #i = 1
     if first_player == 0: # if player goes first
-        for die in player_dice:
+        for die in dice:
             #die.result = i
             #i+=1
             die.roll()
@@ -106,38 +109,47 @@ def roll_dice():
 
 
 
-def choose_dice(dice):
-    i = 1
-    chosen_pool = []
+def choose_dice(dice):  # this function prints out each dice roll and allows the player to select the dice they wish to score.
+    global temp_score
+    global score
+    num_dice = len(dice)    # stores how many dice either player has left to roll.
+    chosen_pool = []    # stores the dice that the player/AI will choose to keep.
     choosing = True
-    while choosing:
+
+    while choosing: # after choosing a die to keep, the list of rolled dice will refresh, allowing the player to choose the next die to keep.
         i = 1
         for die in dice:
-            if die in chosen_pool:
-                print("{}{}. {}".format(Fore.GREEN, i, die.result), Style.RESET_ALL)
-            else:
+            if die in chosen_pool:  # if the die has been chosen, it shall be highlighted in green.
+                print("{}{}. {}".format(Fore.GREEN, i, die.result), Style.RESET_ALL)    #
+            else:   # otherwise just prints the die out like normal.
                 print("{}. {}".format(i, die.result))
             i+=1
         print("z. Commit and continue")
         print("x. Commit and pass")
 
         choice = input("Press the corresponding dice number to add/remove it to/from your pool:")
-        if choice.isdigit():
-            choice = int(choice)
-            #try:
-            if dice[choice-1] in chosen_pool:
-                chosen_pool.remove(dice[choice-1])
-            else:
-                chosen_pool.append(dice[choice-1])
-            score = check_score(chosen_pool)
-            print("SCORE: {}".format(score))
-        #except:
-            #print("Invalid input. Try again.")
+        if choice.isdigit():    # checks that the input from the player is a number. This is important because we use the number chosen as an index later and if the value isn't numerical, there will be an error.
+            choice = int(choice)    # converts the string to an int.
+            try:
+                if dice[choice-1] in chosen_pool:
+                    chosen_pool.remove(dice[choice-1])
+                else:
+                    chosen_pool.append(dice[choice-1])
+                score = check_score(chosen_pool)
+                print("SCORE: {}".format(score))
+            except:
+                print("Invalid input. Try again.")
         else:
             if choice == "z":
                 # choose and continue
-                player_dice -= len(chosen_pool)
+                choosing = False
+                for die in chosen_pool:
+                    dice.remove(die)
+                #num_dice -= len(chosen_pool)
+                #print("len chosen_pool: {}".format(len(chosen_pool)))
+                #print("num of dice: {}".format(num_dice))
                 temp_score += score
+                roll_dice(dice)
                 pass
             elif choice == "x":
                 # choose and pass
@@ -148,20 +160,19 @@ def choose_dice(dice):
 
 
 
-def check_score(dice_pool):
+def check_score(dice_pool): # once the player chooses the dice, this function is used to see how much the chosen dice score.
     dice_results = []
     score = 0
-    consecutive_dice = []
-    remaining_dice = []
+    consecutive_dice = []   # used to store a list of 5 or more consecutive dice.
+    remaining_dice = [] # stores the dice that haven't been used to score already.
     test_consc = [1, 2, 3, 4, 5, 6]
-    duplicates = []
-    count_dict = {}
+    count_dict = {} # a dict used for scoring 3 or more of a kind; the key stores the number rolled on the dice and the value stores the number of times that number was rolled.
     for d in dice_pool:
-        dice_results.append(d.result)
+        dice_results.append(d.result)   # populate the dice_results list with the result attribute of each Dice object passed to this function as a parameter (dice_pool).
 
-    if len(dice_pool) > 4:
+    if len(dice_pool) > 4:  # only checks to see if there are 5 or more consecutive numbers if there are 5 or more dice rolled.
         consecutive_dice = find_consecutive_sequences(dice_results) # returns a if there are any consecutive, returns any # numbers that aren't consecutive to be scored seperately.
-        if not consecutive_dice:
+        if not consecutive_dice:    # if there are not 5 or more consecutive dice, skip this section.
             pass
         else:
             consecutive_dice = consecutive_dice[0]
@@ -171,7 +182,7 @@ def check_score(dice_pool):
                 dice_results.remove(i)
     if not consecutive_dice:
         if len(dice_pool) >= 3:
-            # check how many of a kind there are
+            # counts how many of a kind there are
             for d in dice_results:
                 if d in count_dict:
                     count_dict[d] += 1
@@ -195,9 +206,9 @@ def check_score(dice_pool):
                         score += 500
                     elif key == 6:
                         score += 600
-                    dice_results.remove(key)
-                    dice_results.remove(key)
-                    dice_results.remove(key)
+                    for i in range(3):
+                        dice_results.remove(key)
+
 
 
                 elif value == 4:
@@ -213,10 +224,9 @@ def check_score(dice_pool):
                         score += 1000
                     elif key == 6:
                         score += 1200
+                    for i in range(4):
                         dice_results.remove(key)
-                        dice_results.remove(key)
-                        dice_results.remove(key)
-                        dice_results.remove(key)
+
                 elif value == 5:
                     if key == 1:
                         score += 4000
@@ -243,11 +253,8 @@ def check_score(dice_pool):
                         score += 4000
                     elif key == 6:
                         score += 4800
-                    dice_results.remove(key)
-                    dice_results.remove(key)
-                    dice_results.remove(key)
-                    dice_results.remove(key)
-                    dice_results.remove(key)
+                    for i in range(5):
+                        dice_results.remove(key)
 
 
     else:
@@ -260,8 +267,8 @@ def check_score(dice_pool):
                 score += 750
 
 
-    # now we score the dice that haven't been scored yet
 
+    # now we score the dice that haven't been scored yet
 
     print("consec dice: {}".format(consecutive_dice))
     print("Dice Results, {}".format(dice_results))
@@ -280,11 +287,8 @@ def check_score(dice_pool):
 
 
 #welcome(t_points)
-setup()
+p_dice, o_dice = setup()
 coin_flip()
-roll_dice()
-
-
-
-# Example usage
+print(len(p_dice))
+roll_dice(p_dice)
 
